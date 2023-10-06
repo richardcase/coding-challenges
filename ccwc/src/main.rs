@@ -12,6 +12,10 @@ struct Args {
     #[arg(short = 'l')]
     lines: bool,
 
+    /// Count words
+    #[arg(short = 'w')]
+    words: bool,
+
     /// Path to the file
     file: PathBuf,
 }
@@ -25,8 +29,9 @@ fn main() {
     if args.lines {
         count_lines(&args.file)
     }
-
-    //println!("Path: {}", args.file.display());
+    if args.words {
+        count_words(&args.file)
+    }
 }
 
 fn count_characters(file: &PathBuf) {
@@ -56,7 +61,7 @@ fn count_lines(file: &PathBuf) {
     };
 
     let mut num_lines = 0;
-    for line in contents.lines() {
+    for _line in contents.lines() {
         num_lines += 1;
     }
 
@@ -66,5 +71,26 @@ fn count_lines(file: &PathBuf) {
     };
 
     println!("{} {}", num_lines, filename.to_str().unwrap());
+}
 
+fn count_words(file: &PathBuf) {
+    let result = fs::read_to_string(&file);
+
+    let contents = match result {
+        Ok(contents) => { contents },
+        Err(error) => { panic!("Err when opening file {}", error)}
+    };
+
+    let mut num_words = 0;
+    for line in contents.lines() {
+        let count = line.split_whitespace().count();
+        num_words += count;
+    }
+
+    let filename = match file.file_name() {
+        None => { panic!("Couldn't get filename")}
+        Some(filename) => { filename }
+    };
+
+    println!("{} {}", num_words, filename.to_str().unwrap());
 }
