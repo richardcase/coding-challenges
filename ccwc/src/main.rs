@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::{fs, path::PathBuf};
+use std::string;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -16,7 +17,7 @@ struct Args {
     #[arg(short = 'w', long)]
     words: bool,
 
-    /// Count charatcters
+    /// Count characters
     #[arg(short = 'm', long)]
     chars: bool,
 
@@ -27,21 +28,43 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    if args.bytes {
-        count_bytes(&args.file)
+    // Support the default options if non are supplied
+    let default =  !args.chars && !args.words && !args.lines && !args.bytes;
+
+    let filename = match args.file.file_name() {
+        None => { panic!("Couldn't get filename")}
+        Some(filename) => { filename }
+    };
+
+    let mut output = string::String::new();
+
+    if args.lines  || default{
+        let lines = count_lines(&args.file);
+        output.push_str(lines.to_string().as_str());
+        output.push_str(" ");
     }
-    if args.lines {
-        count_lines(&args.file)
+    if args.words || default {
+        let words = count_words(&args.file);
+        output.push_str(words.to_string().as_str());
+        output.push_str(" ");
     }
-    if args.words {
-        count_words(&args.file)
+    if args.bytes || default {
+        let bytes = count_bytes(&args.file);
+        output.push_str(bytes.to_string().as_str());
+        output.push_str(" ");
     }
     if args.chars {
-        count_characters(&args.file)
+        let chars = count_characters(&args.file);
+        output.push_str(chars.to_string().as_str());
+        output.push_str(" ");
     }
+
+    output.push_str(filename.to_str().unwrap());
+
+    println!("{output}");
 }
 
-fn count_bytes(file: &PathBuf) {
+fn count_bytes(file: &PathBuf) -> usize {
     let result = fs::read_to_string(&file);
     
     let contents = match result {
@@ -49,17 +72,10 @@ fn count_bytes(file: &PathBuf) {
         Err(error) => { panic!("Err when opening file {}", error)}
     };
 
-    let num_bytes = contents.bytes().len();
-
-    let filename = match file.file_name() {
-        None => { panic!("Couldn't get filename")}
-        Some(filename) => { filename }
-    };
-
-    println!("{} {}", num_bytes, filename.to_str().unwrap());
+    contents.bytes().len()
 }
 
-fn count_lines(file: &PathBuf) {
+fn count_lines(file: &PathBuf) -> usize {
     let result = fs::read_to_string(&file);
 
     let contents = match result {
@@ -72,15 +88,10 @@ fn count_lines(file: &PathBuf) {
         num_lines += 1;
     }
 
-    let filename = match file.file_name() {
-        None => { panic!("Couldn't get filename")}
-        Some(filename) => { filename }
-    };
-
-    println!("{} {}", num_lines, filename.to_str().unwrap());
+    num_lines
 }
 
-fn count_words(file: &PathBuf) {
+fn count_words(file: &PathBuf) -> usize {
     let result = fs::read_to_string(&file);
 
     let contents = match result {
@@ -94,15 +105,10 @@ fn count_words(file: &PathBuf) {
         num_words += count;
     }
 
-    let filename = match file.file_name() {
-        None => { panic!("Couldn't get filename")}
-        Some(filename) => { filename }
-    };
-
-    println!("{} {}", num_words, filename.to_str().unwrap());
+    num_words
 }
 
-fn count_characters(file: &PathBuf) {
+fn count_characters(file: &PathBuf) -> usize {
     let result = fs::read_to_string(&file);
 
     let contents = match result {
@@ -110,12 +116,5 @@ fn count_characters(file: &PathBuf) {
         Err(error) => { panic!("Err when opening file {}", error)}
     };
 
-    let num_chars = contents.chars().count();
-
-    let filename = match file.file_name() {
-        None => { panic!("Couldn't get filename")}
-        Some(filename) => { filename }
-    };
-
-    println!("{} {}", num_chars, filename.to_str().unwrap());
+     contents.chars().count()
 }
