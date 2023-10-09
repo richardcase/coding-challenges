@@ -1,5 +1,5 @@
 use clap::Parser;
-use std::{fs, path::PathBuf};
+use std::fs;
 use std::string;
 
 #[derive(Parser, Debug)]
@@ -22,7 +22,7 @@ struct Args {
     chars: bool,
 
     /// Path to the file
-    file: PathBuf,
+    file: Option<String>,
 }
 
 fn main() {
@@ -31,58 +31,62 @@ fn main() {
     // Support the default options if non are supplied
     let default =  !args.chars && !args.words && !args.lines && !args.bytes;
 
-    let filename = match args.file.file_name() {
-        None => { panic!("Couldn't get filename")}
+    let file:String = match args.file {
+        None => { String::new() },
         Some(filename) => { filename }
     };
+
+    let mut contents = String::new();
+    if file.is_empty() || file == "-" {
+        // TODO: read from stdin
+        //panic!("not implemented yet");
+        let stdin = std::io::stdin();
+        let mut handle = stdin.lock();
+        std::io::stdin()
+        handle.read_to_string(&mut contents)?;
+    } else {
+        // Read the contents from a file
+        let result = fs::read_to_string(&file);
+
+        contents = match result {
+            Ok(contents) => { contents },
+            Err(error) => { panic!("Err when opening file {}", error)}
+        };
+    }
 
     let mut output = string::String::new();
 
     if args.lines  || default{
-        let lines = count_lines(&args.file);
+        let lines = count_lines(&contents);
         output.push_str(lines.to_string().as_str());
         output.push_str(" ");
     }
     if args.words || default {
-        let words = count_words(&args.file);
+        let words = count_words(&contents);
         output.push_str(words.to_string().as_str());
         output.push_str(" ");
     }
     if args.bytes || default {
-        let bytes = count_bytes(&args.file);
+        let bytes = count_bytes(&contents);
         output.push_str(bytes.to_string().as_str());
         output.push_str(" ");
     }
     if args.chars {
-        let chars = count_characters(&args.file);
+        let chars = count_characters(&contents);
         output.push_str(chars.to_string().as_str());
         output.push_str(" ");
     }
 
-    output.push_str(filename.to_str().unwrap());
+    output.push_str(file.as_str());
 
     println!("{output}");
 }
 
-fn count_bytes(file: &PathBuf) -> usize {
-    let result = fs::read_to_string(&file);
-    
-    let contents = match result {
-        Ok(contents) => { contents },
-        Err(error) => { panic!("Err when opening file {}", error)}
-    };
-
+fn count_bytes(contents: &str) -> usize {
     contents.bytes().len()
 }
 
-fn count_lines(file: &PathBuf) -> usize {
-    let result = fs::read_to_string(&file);
-
-    let contents = match result {
-        Ok(contents) => { contents },
-        Err(error) => { panic!("Err when opening file {}", error)}
-    };
-
+fn count_lines(contents: &str) -> usize {
     let mut num_lines = 0;
     for _line in contents.lines() {
         num_lines += 1;
@@ -91,14 +95,7 @@ fn count_lines(file: &PathBuf) -> usize {
     num_lines
 }
 
-fn count_words(file: &PathBuf) -> usize {
-    let result = fs::read_to_string(&file);
-
-    let contents = match result {
-        Ok(contents) => { contents },
-        Err(error) => { panic!("Err when opening file {}", error)}
-    };
-
+fn count_words(contents: &str) -> usize {
     let mut num_words = 0;
     for line in contents.lines() {
         let count = line.split_whitespace().count();
@@ -108,13 +105,6 @@ fn count_words(file: &PathBuf) -> usize {
     num_words
 }
 
-fn count_characters(file: &PathBuf) -> usize {
-    let result = fs::read_to_string(&file);
-
-    let contents = match result {
-        Ok(contents) => { contents },
-        Err(error) => { panic!("Err when opening file {}", error)}
-    };
-
+fn count_characters(contents: &str) -> usize {
      contents.chars().count()
 }
