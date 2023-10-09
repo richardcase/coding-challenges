@@ -5,16 +5,20 @@ use std::{fs, path::PathBuf};
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Count characters
-    #[arg(short = 'c')]
-    characters: bool,
+    #[arg(short = 'c', long)]
+    bytes: bool,
 
     /// Count lines
-    #[arg(short = 'l')]
+    #[arg(short = 'l', long)]
     lines: bool,
 
     /// Count words
-    #[arg(short = 'w')]
+    #[arg(short = 'w', long)]
     words: bool,
+
+    /// Count charatcters
+    #[arg(short = 'm', long)]
+    chars: bool,
 
     /// Path to the file
     file: PathBuf,
@@ -23,8 +27,8 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    if args.characters {
-        count_characters(&args.file)
+    if args.bytes {
+        count_bytes(&args.file)
     }
     if args.lines {
         count_lines(&args.file)
@@ -32,9 +36,12 @@ fn main() {
     if args.words {
         count_words(&args.file)
     }
+    if args.chars {
+        count_characters(&args.file)
+    }
 }
 
-fn count_characters(file: &PathBuf) {
+fn count_bytes(file: &PathBuf) {
     let result = fs::read_to_string(&file);
     
     let contents = match result {
@@ -93,4 +100,22 @@ fn count_words(file: &PathBuf) {
     };
 
     println!("{} {}", num_words, filename.to_str().unwrap());
+}
+
+fn count_characters(file: &PathBuf) {
+    let result = fs::read_to_string(&file);
+
+    let contents = match result {
+        Ok(contents) => { contents },
+        Err(error) => { panic!("Err when opening file {}", error)}
+    };
+
+    let num_chars = contents.chars().count();
+
+    let filename = match file.file_name() {
+        None => { panic!("Couldn't get filename")}
+        Some(filename) => { filename }
+    };
+
+    println!("{} {}", num_chars, filename.to_str().unwrap());
 }
