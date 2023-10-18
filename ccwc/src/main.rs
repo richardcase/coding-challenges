@@ -1,5 +1,6 @@
 use clap::Parser;
 use std::fs;
+use std::io::{self, Read};
 use std::string;
 
 #[derive(Parser, Debug)]
@@ -26,53 +27,59 @@ struct Args {
 }
 
 fn main() {
-    let args = Args::parse();
+    let args: Args = Args::parse();
 
     // Support the default options if non are supplied
-    let default =  !args.chars && !args.words && !args.lines && !args.bytes;
+    let default: bool = !args.chars && !args.words && !args.lines && !args.bytes;
 
-    let file:String = match args.file {
-        None => { String::new() },
-        Some(filename) => { filename }
+    let file: String = match args.file {
+        None => String::new(),
+        Some(filename) => filename,
     };
 
     let mut contents = String::new();
     if file.is_empty() || file == "-" {
-        // TODO: read from stdin
-        //panic!("not implemented yet");
-        let stdin = std::io::stdin();
-        let mut handle = stdin.lock();
-        std::io::stdin()
-        handle.read_to_string(&mut contents)?;
+        let stdin: io::Stdin = io::stdin();
+        let mut handle: io::StdinLock<'_> = stdin.lock();
+
+        let res: Result<_, io::Error> = handle.read_to_string(&mut contents);
+        let _num_read: usize = match res {
+            Ok(size) => size,
+            Err(error) => {
+                panic!("Err when reading stdin {}", error)
+            }
+        };
     } else {
         // Read the contents from a file
-        let result = fs::read_to_string(&file);
+        let result: Result<String, io::Error> = fs::read_to_string(&file);
 
         contents = match result {
-            Ok(contents) => { contents },
-            Err(error) => { panic!("Err when opening file {}", error)}
+            Ok(contents) => contents,
+            Err(error) => {
+                panic!("Err when opening file {}", error)
+            }
         };
     }
 
-    let mut output = string::String::new();
+    let mut output: String = string::String::new();
 
-    if args.lines  || default{
-        let lines = count_lines(&contents);
+    if args.lines || default {
+        let lines: usize = count_lines(&contents);
         output.push_str(lines.to_string().as_str());
         output.push_str(" ");
     }
     if args.words || default {
-        let words = count_words(&contents);
+        let words: usize = count_words(&contents);
         output.push_str(words.to_string().as_str());
         output.push_str(" ");
     }
     if args.bytes || default {
-        let bytes = count_bytes(&contents);
+        let bytes: usize = count_bytes(&contents);
         output.push_str(bytes.to_string().as_str());
         output.push_str(" ");
     }
     if args.chars {
-        let chars = count_characters(&contents);
+        let chars: usize = count_characters(&contents);
         output.push_str(chars.to_string().as_str());
         output.push_str(" ");
     }
@@ -106,5 +113,5 @@ fn count_words(contents: &str) -> usize {
 }
 
 fn count_characters(contents: &str) -> usize {
-     contents.chars().count()
+    contents.chars().count()
 }
